@@ -6,5 +6,9 @@ Uncompress ZIP, RAR, and TAR files with pure JavaScript
 * For Zip it uses https://github.com/Stuk/jszip (MIT License)
 * For Tar it uses its own libuntar.js file (MIT License)
 
+# TODO
+* Rename to decompress.js
+* Add the entry size before and after compression
+
 # Bugs and Corrections
 Please report a Bug if you suspect any of this information is wrong.

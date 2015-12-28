@@ -39,16 +39,12 @@ function currentScriptPath() {
 	}
 }
 
-// Get the path of the current script
-var path = currentScriptPath();
-
-// Load the libraries
-var unrarMemoryFileLocation = path + 'libunrar.js.mem';
-loadScript(path + 'libunrar.js');
-loadScript(path + 'jszip.js');
-loadScript(path + 'libuntar.js');
+// This is used by libunrar.js to load libunrar.js.mem
+var unrarMemoryFileLocation = null;
 
 (function() {
+
+var _loaded_archive_formats = [];
 
 // Polyfill for missing array slice method (IE 11)
 if (typeof Uint8Array !== 'undefined') {
@@ -86,6 +82,38 @@ function saneMap(array, cb) {
 	return retval;
 }
 
+function loadArchiveFormats(formats) {
+	// Get the path of the current script
+	var path = currentScriptPath();
+
+	// Load the formats
+	formats.forEach(function(archive_format) {
+		// Skip this format if it is already loaded
+		if (_loaded_archive_formats.indexOf(archive_format) !== -1) {
+			return;
+		}
+
+		// Load the archive format
+		switch (archive_format) {
+			case 'rar':
+				unrarMemoryFileLocation = path + 'libunrar.js.mem';
+				loadScript(path + 'libunrar.js');
+				_loaded_archive_formats.push(archive_format);
+				break;
+			case 'zip':
+				loadScript(path + 'jszip.js');
+				_loaded_archive_formats.push(archive_format);
+				break;
+			case 'tar':
+				loadScript(path + 'libuntar.js');
+				_loaded_archive_formats.push(archive_format);
+				break;
+			default:
+				throw new Error("Unknown archive format '" + archive_format + "'.");
+		}
+	});
+}
+
 function archiveOpenFile(file, cb) {
 	// Get the file's info
 	var blob = file.slice();
@@ -97,8 +125,12 @@ function archiveOpenFile(file, cb) {
 		var array_buffer = reader.result;
 
 		// Open the file as an archive
-		var archive = archiveOpenArrayBuffer(file_name, array_buffer);
-		cb(archive);
+		try {
+			var archive = archiveOpenArrayBuffer(file_name, array_buffer);
+			cb(archive, null);
+		} catch(e) {
+			cb(null, e);
+		}
 	};
 	reader.readAsArrayBuffer(blob);
 }
@@ -113,25 +145,34 @@ function archiveOpenArrayBuffer(file_name, array_buffer) {
 	} else if(isTarFile(array_buffer)) {
 		archive_type = 'tar';
 	} else {
-		return null;
+		throw new Error("The archive type is unknown");
+	}
+
+	// Make sure the archive format is loaded
+	if (_loaded_archive_formats.indexOf(archive_type) === -1) {
+		throw new Error("The archive format '" + archive_type + "' is not loaded.");
 	}
 
 	// Get the entries
 	var handle = null;
 	var entries = [];
-	switch (archive_type) {
-		case 'rar':
-			handle = _rarOpen(file_name, array_buffer);
-			entries = _rarGetEntries(handle);
-			break;
-		case 'zip':
-			handle = _zipOpen(file_name, array_buffer);
-			entries = _zipGetEntries(handle);
-			break;
-		case 'tar':
-			handle = _tarOpen(file_name, array_buffer);
-			entries = _tarGetEntries(handle);
-			break;
+	try {
+		switch (archive_type) {
+			case 'rar':
+				handle = _rarOpen(file_name, array_buffer);
+				entries = _rarGetEntries(handle);
+				break;
+			case 'zip':
+				handle = _zipOpen(file_name, array_buffer);
+				entries = _zipGetEntries(handle);
+				break;
+			case 'tar':
+				handle = _tarOpen(file_name, array_buffer);
+				entries = _tarGetEntries(handle);
+				break;
+		}
+	} catch(e) {
+		throw new Error("Failed to open '" + archive_type + "' archive.");
 	}
 
 	// Sort the entries by name
@@ -341,6 +382,7 @@ if (typeof window === 'object') {
 }
 
 // Set exports
+scope.loadArchiveFormats = loadArchiveFormats;
 scope.archiveOpenFile = archiveOpenFile;
 scope.archiveOpenArrayBuffer = archiveOpenArrayBuffer;
 scope.archiveClose = archiveClose;

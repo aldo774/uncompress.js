@@ -84,12 +84,11 @@ function createLinkForEachEntry(archive) {
 			// Add a link to the Object URL
 			var a = document.createElement('a');
 			a.innerHTML = entry.name + ' (' + toFriendlySize(entry.size) + ')';
-			a.href = entry.name;
+			a.href = '#' + entry.name;
 
 			// Uncompress the entry when the link is clicked on
 			a.addEventListener('click', function(e) {
 				console.info('clicked .................');
-				e.preventDefault();
 				onClick(entry);
 			});
 
@@ -101,6 +100,9 @@ function createLinkForEachEntry(archive) {
 }
 
 window.onload = function() {
+	// Load all the archive formats
+	loadArchiveFormats(['rar', 'zip', 'tar']);
+
 	entryList = document.getElementById('entryList');
 
 	document.getElementById('fileInput').onchange = function() {
@@ -111,18 +113,22 @@ window.onload = function() {
 			return;
 		}
 
+		// Remove any loaded image
+		window.location.hash = '';
+		document.getElementById('currentImage').src = '';
+
 		// Get the file's info
 		var file = file_input.files[0];
 
 		// Open the file as an archive
-		archiveOpenFile(file, function(archive) {
+		archiveOpenFile(file, function(archive, err) {
 			if (archive) {
 				console.info('Uncompressing ' + archive.archive_type + ' ...');
 				entryList.innerHTML = '';
 				document.getElementById('currentImage').src = '';
 				createLinkForEachEntry(archive);
 			} else {
-				entryList.innerHTML = 'Failed to uncompress file';
+				entryList.innerHTML = '<span style="color: red">' + err + '</span>';
 			}
 		});
 	};

@@ -6,6 +6,8 @@
 importScripts("polyfill.js");
 importScripts("../../js/uncompress.js");
 
+// Load all the archive formats
+loadArchiveFormats(['rar', 'zip', 'tar']);
 
 // FIXME: This function is super inefficient
 function isValidImageType(file_name) {
@@ -82,16 +84,15 @@ self.addEventListener('message', function(e) {
 			var file_name = e.data.file_name;
 
 			// Open the array buffer as an archive
-			var archive = archiveOpenArrayBuffer(file_name, array_buffer);
-			if (archive) {
+			try {
+				var archive = archiveOpenArrayBuffer(file_name, array_buffer);
 				console.info('Uncompressing ' + archive.archive_type + ' ...');
 				onUncompress(archive);
 			// Otherwise show an error
-			} else {
-				var error = 'Invalid file: "' + file_name + '"';
+			} catch (e) {
 				var message = {
 					action: 'invalid_file',
-					error: error
+					error: e.message
 				};
 				self.postMessage(message);
 			}
