@@ -54,7 +54,7 @@ function onClick(entry) {
 	var img = document.getElementById('currentImage');
 	img.src = '';
 
-	entry.readData(function(data) {
+	entry.readData(function(data, err) {
 		// Convert the data into an Object URL
 		var blob = new Blob([data], {type: getFileMimeType(entry.name)});
 		var url = URL.createObjectURL(blob);
@@ -83,7 +83,7 @@ function createLinkForEachEntry(archive) {
 
 			// Add a link to the Object URL
 			var a = document.createElement('a');
-			a.innerHTML = entry.name + ' (' + toFriendlySize(entry.size) + ')';
+			a.innerHTML = entry.name + ' (' + toFriendlySize(entry.size_uncompressed) + ')';
 			a.href = '#' + entry.name;
 
 			// Uncompress the entry when the link is clicked on

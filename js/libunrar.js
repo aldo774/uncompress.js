@@ -273,11 +273,13 @@ var readRARFileNames = function(data, password) {
 	while (res === ERAR_SUCCESS) {
 		var flags = header.get_Flags();
 		var is_file = (flags & RHDF_DIRECTORY) === 0;
-		var size = header.get_UnpSize();
+		var size_uncompressed = header.get_UnpSize();
+		var size_compressed = header.get_PackSize();
 		entries.push({
 			name: getFileName(header),
 			is_file: is_file,
-			size: size
+			size_uncompressed: size_uncompressed,
+			size_compressed: size_compressed
 		});
 		var PFCode = _RARProcessFileW(handle, RAR_SKIP, 0, 0);
 		if (PFCode !== ERAR_SUCCESS) {
@@ -350,7 +352,7 @@ var readRARContent = function(data, password, fileName, callbackEach) {
 		//console.info(view);
 		currFileBufferEnd += P2;
 		if (currFileSize === currFileBufferEnd) {
-			callbackEach(view.buffer);
+			callbackEach(view.buffer, null);
 		}
 
 		return 1
